@@ -4,6 +4,7 @@
 #include "dialogs/NewInstanceDialog.h"
 #include <modplatform/atlauncher/ATLPackInstallTask.h>
 #include <BuildConfig.h>
+#include <dialogs/VersionSelectDialog.h>
 
 AtlPage::AtlPage(NewInstanceDialog* dialog, QWidget *parent)
         : QWidget(parent), ui(new Ui::AtlPage), dialog(dialog)
@@ -25,6 +26,8 @@ AtlPage::AtlPage(NewInstanceDialog* dialog, QWidget *parent)
     }
     ui->sortByBox->setCurrentText(filterModel->translateCurrentSorting());
 
+    connect(ui->searchEdit, &QLineEdit::textChanged, this, &AtlPage::triggerSearch);
+    connect(ui->resetButton, &QPushButton::clicked, this, &AtlPage::resetSearch);
     connect(ui->sortByBox, &QComboBox::currentTextChanged, this, &AtlPage::onSortingSelectionChanged);
     connect(ui->packView->selectionModel(), &QItemSelectionModel::currentChanged, this, &AtlPage::onSelectionChanged);
     connect(ui->versionSelectionBox, &QComboBox::currentTextChanged, this, &AtlPage::onVersionSelectionChanged);
@@ -48,7 +51,7 @@ void AtlPage::openedImpl()
 void AtlPage::suggestCurrent()
 {
     if(isOpened) {
-        dialog->setSuggestedPack(selected.name, new ATLauncher::PackInstallTask(selected.safeName, selectedVersion));
+        dialog->setSuggestedPack(selected.name, new ATLauncher::PackInstallTask(this, selected.safeName, selectedVersion));
     }
 
     auto editedLogoName = selected.safeName;
@@ -57,6 +60,16 @@ void AtlPage::suggestCurrent()
     {
         dialog->setSuggestedIconFromFile(logo, editedLogoName);
     });
+}
+
+void AtlPage::triggerSearch()
+{
+    filterModel->setSearchTerm(ui->searchEdit->text());
+}
+
+void AtlPage::resetSearch()
+{
+    ui->searchEdit->setText("");
 }
 
 void AtlPage::onSortingSelectionChanged(QString data)
@@ -80,6 +93,8 @@ void AtlPage::onSelectionChanged(QModelIndex first, QModelIndex second)
 
     selected = filterModel->data(first, Qt::UserRole).value<ATLauncher::IndexedPack>();
 
+    ui->packDescription->setHtml(selected.description.replace("\n", "<br>"));
+
     for(const auto& version : selected.versions) {
         ui->versionSelectionBox->addItem(version.version);
     }
@@ -97,4 +112,40 @@ void AtlPage::onVersionSelectionChanged(QString data)
 
     selectedVersion = data;
     suggestCurrent();
+}
+
+QString AtlPage::chooseVersion(Meta::VersionListPtr vlist, QString minecraftVersion) {
+    VersionSelectDialog vselect(vlist.get(), "Choose Version", MMC->activeWindow(), false);
+    if (minecraftVersion != Q_NULLPTR) {
+        vselect.setExactFilter(BaseVersionList::ParentVersionRole, minecraftVersion);
+        vselect.setEmptyString(tr("No versions are currently available for Minecraft %1").arg(minecraftVersion));
+    }
+    else {
+        vselect.setEmptyString(tr("No versions are currently available"));
+    }
+    vselect.setEmptyErrorString(tr("Couldn't load or download the version lists!"));
+
+    // select recommended build
+    for (int i = 0; i < vlist->versions().size(); i++) {
+        auto version = vlist->versions().at(i);
+        auto reqs = version->requires();
+
+        // filter by minecraft version, if the loader depends on a certain version.
+        if (minecraftVersion != Q_NULLPTR) {
+            auto iter = std::find_if(reqs.begin(), reqs.end(), [](const Meta::Require &req) {
+                return req.uid == "net.minecraft";
+            });
+            if (iter == reqs.end()) continue;
+            if (iter->equalsVersion != minecraftVersion) continue;
+        }
+
+        // first recommended build we find, we use.
+        if (version->isRecommended()) {
+            vselect.setCurrentVersion(version->descriptor());
+            break;
+        }
+    }
+
+    vselect.exec();
+    return vselect.selectedVersion()->descriptor();
 }
