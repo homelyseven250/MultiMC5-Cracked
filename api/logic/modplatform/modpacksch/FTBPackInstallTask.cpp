@@ -30,12 +30,12 @@ void PackInstallTask::executeTask()
         if (vInfo.name == m_version_name) {
             found = true;
             version = vInfo;
-            continue;
+            break;
         }
     }
 
     if(!found) {
-        emitFailed("failed to find pack version " + m_version_name);
+        emitFailed(tr("Failed to find pack version %1").arg(m_version_name));
         return;
     }
 
@@ -76,7 +76,7 @@ void PackInstallTask::onDownloadSucceeded()
     }
     m_version = version;
 
-    install();
+    downloadPack();
 }
 
 void PackInstallTask::onDownloadFailed(QString reason)
@@ -85,32 +85,9 @@ void PackInstallTask::onDownloadFailed(QString reason)
     emitFailed(reason);
 }
 
-void PackInstallTask::install()
+void PackInstallTask::downloadPack()
 {
-    setStatus(tr("Installing modpack"));
-
-    auto instanceConfigPath = FS::PathCombine(m_stagingPath, "instance.cfg");
-    auto instanceSettings = std::make_shared<INISettingsObject>(instanceConfigPath);
-    instanceSettings->registerSetting("InstanceType", "Legacy");
-    instanceSettings->set("InstanceType", "OneSix");
-
-    MinecraftInstance instance(m_globalSettings, instanceSettings, m_stagingPath);
-    auto components = instance.getPackProfile();
-    components->buildingFromScratch();
-
-    for(auto target : m_version.targets) {
-        if(target.type == "game" && target.name == "minecraft") {
-            components->setComponentVersion("net.minecraft", target.version, true);
-            continue;
-        }
-    }
-
-    for(auto target : m_version.targets) {
-        if(target.type == "modloader" && target.name == "forge") {
-            components->setComponentVersion("net.minecraftforge", target.version, true);
-        }
-    }
-    components->saveNow();
+    setStatus(tr("Downloading mods..."));
 
     jobPtr.reset(new NetJob(tr("Mod download")));
     for(auto file : m_version.files) {
@@ -127,7 +104,7 @@ void PackInstallTask::install()
     connect(jobPtr.get(), &NetJob::succeeded, this, [&]()
     {
         jobPtr.reset();
-        emitSucceeded();
+        install();
     });
     connect(jobPtr.get(), &NetJob::failed, [&](QString reason)
     {
@@ -136,19 +113,68 @@ void PackInstallTask::install()
         // FIXME: Temporarily ignore file download failures (matching FTB's installer),
         // while FTB's data is fucked.
         qWarning() << "Failed to download files for modpack: " + reason;
-        emitSucceeded();
+
+        install();
     });
     connect(jobPtr.get(), &NetJob::progress, [&](qint64 current, qint64 total)
     {
         setProgress(current, total);
     });
 
-    setStatus(tr("Downloading mods..."));
     jobPtr->start();
+}
+
+void PackInstallTask::install()
+{
+    setStatus(tr("Installing modpack"));
+
+    auto instanceConfigPath = FS::PathCombine(m_stagingPath, "instance.cfg");
+    auto instanceSettings = std::make_shared<INISettingsObject>(instanceConfigPath);
+    instanceSettings->suspendSave();
+    instanceSettings->registerSetting("InstanceType", "Legacy");
+    instanceSettings->set("InstanceType", "OneSix");
+
+    MinecraftInstance instance(m_globalSettings, instanceSettings, m_stagingPath);
+    auto components = instance.getPackProfile();
+    components->buildingFromScratch();
+
+    for(auto target : m_version.targets) {
+        if(target.type == "game" && target.name == "minecraft") {
+            components->setComponentVersion("net.minecraft", target.version, true);
+            break;
+        }
+    }
+
+    for(auto target : m_version.targets) {
+        if(target.type != "modloader") continue;
+
+        if(target.name == "forge") {
+            components->setComponentVersion("net.minecraftforge", target.version, true);
+        }
+        else if(target.name == "fabric") {
+            components->setComponentVersion("net.fabricmc.fabric-loader", target.version, true);
+        }
+    }
+
+    // install any jar mods
+    QDir jarModsDir(FS::PathCombine(m_stagingPath, "minecraft", "jarmods"));
+    if (jarModsDir.exists()) {
+        QStringList jarMods;
+
+        for (const auto& info : jarModsDir.entryInfoList(QDir::NoDotAndDotDot | QDir::Files)) {
+            jarMods.push_back(info.absoluteFilePath());
+        }
+
+        components->installJarMods(jarMods);
+    }
+
+    components->saveNow();
 
     instance.setName(m_instName);
     instance.setIconKey(m_instIcon);
     instanceSettings->resumeSave();
+
+    emitSucceeded();
 }
 
 }

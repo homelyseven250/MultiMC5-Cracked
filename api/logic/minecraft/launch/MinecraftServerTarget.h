@@ -15,23 +15,16 @@
 
 #pragma once
 
-#include <launch/LaunchStep.h>
-#include <LoggedProcess.h>
-#include <minecraft/auth/AuthSession.h>
+#include <memory>
 
-// HACK: this is a workaround for MCL-3732 - 'server-resource-packs' folder is created.
-class CreateServerResourcePacksFolder: public LaunchStep
-{
-    Q_OBJECT
-public:
-    explicit CreateServerResourcePacksFolder(LaunchTask *parent);
-    virtual ~CreateServerResourcePacksFolder() {};
+#include <QString>
+#include <multimc_logic_export.h>
 
-    virtual void executeTask();
-    virtual bool canAbort() const
-    {
-        return false;
-    }
+struct MinecraftServerTarget {
+    QString address;
+    quint16 port;
+
+    static MULTIMC_LOGIC_EXPORT MinecraftServerTarget parse(const QString &fullAddress);
 };
 
-
+typedef std::shared_ptr<MinecraftServerTarget> MinecraftServerTargetPtr;

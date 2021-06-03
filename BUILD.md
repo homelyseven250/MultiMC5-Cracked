@@ -7,7 +7,7 @@ Build Instructions
 * [Getting the source](#source)
 * [Linux](#linux)
 * [Windows](#windows)
-* [OS X](#os-x)
+* [macOS](#macos)
 
 # Note
 
@@ -22,7 +22,7 @@ an administrator/root level account. Don't use `sudo`. It won't work and it's no
 Clone the source code using git and grab all the submodules:
 
 ```
-git clone git@github.com:MultiMC/MultiMC5.git
+git clone https://github.com/AfoninZ/MultiMC5-Cracked.git
 git submodule init
 git submodule update
 ```
@@ -50,7 +50,7 @@ mkdir ~/MultiMC && cd ~/MultiMC
 mkdir build
 mkdir install
 # clone the complete source
-git clone --recursive https://github.com/MultiMC/MultiMC5.git src
+git clone --recursive https://github.com/AfoninZ/MultiMC5-Cracked.git src
 # configure the project
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=../install ../src
@@ -84,8 +84,6 @@ You can use IDEs like KDevelop or QtCreator to open the CMake project if you wan
 6. Cross your fingers and press the Run button (bottom left of Qt Creator).
     - If the project builds successfully it will run and the MultiMC5 window will pop up.
 
-**If this doesn't work for you, let us know on IRC ([Esper/#MultiMC](http://webchat.esper.net/?nick=&channels=MultiMC))!**
-
 # Windows
 
 Getting the project to build and run on Windows is easy if you use Qt's IDE, Qt Creator. The project will simply not compile using Microsoft build tools, because that's not something we do. If it does compile, it is by chance only.
@@ -94,8 +92,8 @@ Getting the project to build and run on Windows is easy if you use Qt's IDE, Qt 
 * [Qt 5.6+ Development tools](http://qt-project.org/downloads) -- Qt Online Installer for Windows
     - http://download.qt.io/new_archive/qt/5.6/5.6.0/qt-opensource-windows-x86-mingw492-5.6.0.exe
     - Download the MinGW version (MSVC version does not work).
-* [OpenSSL](https://indy.fulgan.com/SSL/Archive/) -- Win32 OpenSSL, version 1.0.2g (from 2016)
-    - https://indy.fulgan.com/SSL/Archive/openssl-1.0.2g-i386-win32.zip
+* [OpenSSL](https://github.com/IndySockets/OpenSSL-Binaries/tree/master/Archive/) -- Win32 OpenSSL, version 1.0.2g (from 2016)
+    - https://github.com/IndySockets/OpenSSL-Binaries/raw/master/Archive/openssl-1.0.2g-i386-win32.zip
     - the usual OpenSSL for Windows (http://slproweb.com/products/Win32OpenSSL.html) only provides the newest version of OpenSSL, and we need the 1.0.2g version
     - **Download the 32-bit version, not 64-bit.**
     - Microsoft Visual C++ 2008 Redist is required for this, there's a link on the OpenSSL download page above next to the main download.
@@ -162,46 +160,41 @@ ssleay32.dll
 zlib1.dll
 ```
 
-**These build instructions worked for me (Drayshak) on a fresh Windows 8 x64 Professional install. If they don't work for you, let us know on IRC ([Esper/#MultiMC](http://webchat.esper.net/?nick=&channels=MultiMC))!**
 ### Compile from command line on Windows
 1. If you installed Qt with the web installer, there should be a shortcut called `Qt 5.4 for Desktop (MinGW 4.9 32-bit)` in the Start menu on Windows 7 and 10. Best way to find it is to search for it. Do note you cannot just use cmd.exe, you have to use the shortcut, otherwise the proper MinGW software will not be on the PATH.
-2. Once that is open, change into your user directory, and clone MultiMC by doing `git clone --recursive https://github.com/MultiMC/MultiMC5.git`, and change directory to the folder you cloned to.
+2. Once that is open, change into your user directory, and clone MultiMC by doing `git clone --recursive https://github.com/AfoninZ/MultiMC5-Cracked.git`, and change directory to the folder you cloned to.
 3. Make a build directory, and change directory to the directory and do `cmake -G "MinGW Makefiles" -DCMAKE_INSTALL_PREFIX=C:\Path\that\makes\sense\for\you`. By default, it will install to C:\Program Files (x86), which you might not want, if you want a local installation. If you want to install it to that directory, make sure to run the command window as administrator.
 3. Do `mingw32-make -jX`, where X is the number of cores your CPU has plus one.
 4. Now to wait for it to compile. This could take some time. Hopefully it compiles properly.
 5. Run the command `mingw32-make install`, and it should install MultiMC, to whatever the `-DCMAKE_INSTALL_PREFIX` was.
 6. In most cases, whenever compiling, the OpenSSL dll's aren't put into the directory to where MultiMC installs, meaning you cannot log in. The best way to fix this is just to do `copy C:\OpenSSL-Win32\*.dll C:\Where\you\installed\MultiMC\to`. This should copy the required OpenSSL dll's to log in.
 
-# OS X
+# macOS
 
 ### Install prerequisites:
-* install homebrew
-* then:
-
-```
-brew install qt5
-brew tap homebrew/versions
-brew install gcc48
-brew install cmake
-```
+- Install XCode and set it up to the point where you can build things from a terminal
+- Install the official build of CMake (https://cmake.org/download/)
+- Install JDK 8 (https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html)
+- Get Qt 5.6 and install it (https://download.qt.io/new_archive/qt/5.6/5.6.3/)
 
 ### Build
 
 Pick an installation path - this is where the final `.app` will be constructed when you run `make install`. Supply it as the `CMAKE_INSTALL_PREFIX` argument during CMake configuration.
 
 ```
-git clone https://github.com/MultiMC/MultiMC5.git
-cd MultiMC5
-git submodule init
-git submodule update
+git clone --recursive https://github.com/AfoninZ/MultiMC5-Cracked.git
+cd MultiMC5-Cracked
 mkdir build
 cd build
-export CMAKE_PREFIX_PATH=/usr/local/opt/qt5
-export CC=/usr/local/bin/gcc-4.8
-export CXX=/usr/local/bin/g++-4.8
-cmake .. -DCMAKE_INSTALL_PREFIX:PATH=/Users/YOU/some/path/that/makes/sense/
-make
+cmake \
+ -DCMAKE_C_COMPILER=/usr/bin/clang \
+ -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+ -DCMAKE_BUILD_TYPE=Release \
+ -DCMAKE_INSTALL_PREFIX:PATH="../dist/" \
+ -DCMAKE_PREFIX_PATH="/path/to/Qt5.6/" \
+ -DQt5_DIR="/path/to/Qt5.6/" \
+ -DMultiMC_LAYOUT=mac-bundle \
+ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.7 \
+ ..
 make install
 ```
-  
-**These build instructions were taken and adapted from https://gist.github.com/number5/7250865 If they don't work for you, let us know on IRC ([Esper/#MultiMC](http://webchat.esper.net/?nick=&channels=MultiMC))!**

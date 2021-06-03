@@ -16,9 +16,10 @@
 #pragma once
 
 #include "AtlFilterModel.h"
-#include "AtlModel.h"
+#include "AtlListModel.h"
 
 #include <QWidget>
+#include <modplatform/atlauncher/ATLPackInstallTask.h>
 
 #include "MultiMC.h"
 #include "pages/BasePage.h"
@@ -31,7 +32,7 @@ namespace Ui
 
 class NewInstanceDialog;
 
-class AtlPage : public QWidget, public BasePage
+class AtlPage : public QWidget, public BasePage, public ATLauncher::UserInteractionSupport
 {
 Q_OBJECT
 
@@ -61,7 +62,12 @@ public:
 private:
     void suggestCurrent();
 
+    QString chooseVersion(Meta::VersionListPtr vlist, QString minecraftVersion) override;
+
 private slots:
+    void triggerSearch();
+    void resetSearch();
+
     void onSortingSelectionChanged(QString data);
 
     void onSelectionChanged(QModelIndex first, QModelIndex second);
